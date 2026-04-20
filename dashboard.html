@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENERGY ai - ADNOC Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: linear-gradient(160deg, #0b1a30 0%, #0d2040 60%, #0a1628 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 22px;
+            background: rgba(8, 18, 34, 0.85);
+            border-bottom: 1px solid #1b3a64;
+        }
+        .logo-wrap { line-height: 1.1; }
+        .logo-text { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+        .logo-ai   { color: #4db8ff; font-style: italic; font-size: 20px; font-weight: 300; }
+        .logo-by   { font-size: 10px; color: #5a7ea0; display: block; letter-spacing: 1px; }
+        .header-controls { display: flex; align-items: center; gap: 8px; }
+        .btn { padding: 6px 20px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-active   { background: #1890ff; color: #fff; }
+        .btn-inactive { background: #182d4e; color: #7aabcc; }
+        .year-lbl  { font-size: 12px; color: #7aabcc; }
+        .year-sel  { background: #0e1f38; color: #fff; border: 1px solid #254370; padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+
+        /* ── Dashboard layout ── */
+        .dash { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+        /* Top row: forecast | investment | initiatives */
+        .top-row { display: grid; grid-template-columns: 3fr 0.75fr 1.5fr; gap: 10px; }
+
+        /* Forecast column */
+        .forecast-col { display: flex; flex-direction: column; gap: 6px; }
+        .section-lbl  { font-size: 10px; color: #5a7ea0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .forecast-grid { display: grid; grid-template-columns: 1.3fr 1fr 1.2fr 1fr; gap: 8px; }
+
+        /* Cards */
+        .card {
+            background: #0c1f3c;
+            border: 1px solid #1b3a64;
+            border-radius: 7px;
+            padding: 11px 14px;
+        }
+        .card-ttl  { font-size: 11px; color: #7aabcc; margin-bottom: 3px; }
+        .card-val  { font-size: 22px; font-weight: 700; color: #fff; line-height: 1.1; }
+        .card-val-lg { font-size: 26px; }
+        .validated { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 11px; color: #5a7ea0; flex-wrap: wrap; }
+        .pct    { color: #52c41a; }
+        .v-val  { color: #d4e8ff; }
+
+        /* Gauge card */
+        .gauge-card { background: #0c1f3c; border: 1px solid #1b3a64; border-radius: 7px; padding: 10px 12px; }
+        #gaugeChart { width: 100%; height: 148px; }
+        .gauge-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 2px; }
+        .gauge-footer span { font-size: 10px; color: #5a7ea0; }
+
+        /* OPEX+CAPEX stacked */
+        .stack-col { display: flex; flex-direction: column; gap: 6px; }
+
+        /* Investment */
+        .invest-card { background: #0c1f3c; border: 1px solid #1b3a64; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; justify-content: center; }
+        .invest-sec  { font-size: 10px; color: #5a7ea0; text-transform: uppercase; letter-spacing: 1.5px; }
+        .invest-sub  { font-size: 11px; color: #7aabcc; margin-top: 8px; }
+        .invest-capex { font-size: 10px; color: #5a7ea0; }
+        .invest-val  { font-size: 30px; font-weight: 700; color: #fff; margin-top: 2px; }
+
+        /* Initiatives */
+        .init-col  { display: flex; flex-direction: column; gap: 6px; }
+        .init-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .donut-card { background: #0c1f3c; border: 1px solid #1b3a64; border-radius: 7px; padding: 10px; }
+        .donut-ttl  { font-size: 11px; color: #fff; font-weight: 600; margin-bottom: 2px; }
+        #techTypeChart  { width: 100%; height: 152px; }
+        #validationChart { width: 100%; height: 152px; }
+
+        /* ── Value Creation section ── */
+        .vc-header { display: flex; align-items: center; justify-content: space-between; }
+        .legend-row { display: flex; gap: 14px; align-items: center; }
+        .leg  { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #7aabcc; }
+        .dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .dash { width: 14px; height: 3px; flex-shrink: 0; }
+
+        /* ── Middle charts ── */
+        .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .chart-card { background: #0c1f3c; border: 1px solid #1b3a64; border-radius: 7px; padding: 12px; }
+        .chart-ttl  { font-size: 12px; font-weight: 700; color: #fff; }
+        .chart-sub  { font-size: 10px; color: #5a7ea0; margin-bottom: 2px; }
+        #annualChart    { width: 100%; height: 220px; }
+        #techValueChart { width: 100%; height: 220px; }
+        #investTypeChart{ width: 100%; height: 220px; }
+
+        /* ── Bottom chart ── */
+        .bottom-card { background: #0c1f3c; border: 1px solid #1b3a64; border-radius: 7px; padding: 12px; }
+        #dirChart { width: 100%; height: 200px; }
+    </style>
+</head>
+<body>
+
+<!-- ══ Header ══ -->
+<div class="header">
+    <div class="logo-wrap">
+        <span class="logo-text">ENERGY<span class="logo-ai">ai</span></span>
+        <span class="logo-by">by ADNOC</span>
+    </div>
+    <div class="header-controls">
+        <button class="btn btn-active">Forecast</button>
+        <button class="btn btn-inactive">Actuals</button>
+        <span class="year-lbl">Year:</span>
+        <select class="year-sel"><option>2024</option><option>2023</option><option>2025</option><option>2026</option></select>
+    </div>
+</div>
+
+<!-- ══ Dashboard ══ -->
+<div class="dash">
+
+    <!-- TOP ROW -->
+    <div class="top-row">
+
+        <!-- VALUE CREATION FORECAST -->
+        <div class="forecast-col">
+            <div class="section-lbl">Value Creation Forecast</div>
+            <div class="forecast-grid">
+
+                <!-- Gauge -->
+                <div class="gauge-card">
+                    <div class="card-ttl" style="color:#4db8ff">Value Creation (Forecast)</div>
+                    <div id="gaugeChart"></div>
+                    <div class="gauge-footer">
+                        <span>End Year Target</span><span>N/A</span>
+                    </div>
+                    <div class="validated">
+                        <span>Validated</span><span class="pct">2.29%</span><span class="v-val">682.32M</span>
+                    </div>
+                </div>
+
+                <!-- Gains -->
+                <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+                    <div class="card-ttl">Gains</div>
+                    <div class="card-val card-val-lg">$26,900.5M</div>
+                    <div class="validated">
+                        <span>Validated</span><span class="pct">2.54%</span><span class="v-val">222.08M</span>
+                    </div>
+                </div>
+
+                <!-- OPEX + CAPEX stacked -->
+                <div class="stack-col">
+                    <div class="card" style="flex:1">
+                        <div class="card-ttl">OPEX Savings</div>
+                        <div class="card-val">$1,598.7M</div>
+                        <div class="validated">
+                            <span>Validated</span><span class="pct">38.71%</span><span class="v-val">232.63M</span>
+                        </div>
+                    </div>
+                    <div class="card" style="flex:1">
+                        <div class="card-ttl">CAPEX Savings</div>
+                        <div class="card-val">$1,024.5M</div>
+                        <div class="validated">
+                            <span>Validated</span><span class="pct">59.04%</span><span class="v-val">227.61M</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cost Avoidance -->
+                <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+                    <div class="card-ttl">Cost Avoidance</div>
+                    <div class="card-val card-val-lg">$336.1M</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- INVESTMENT -->
+        <div class="invest-card">
+            <div class="invest-sec">Investment</div>
+            <div class="invest-sub">Investment</div>
+            <div class="invest-capex">CAPEX</div>
+            <div class="invest-val">1,956.9M</div>
+        </div>
+
+        <!-- INITIATIVES -->
+        <div class="init-col">
+            <div class="section-lbl">Initiatives</div>
+            <div class="init-grid">
+                <div class="donut-card">
+                    <div class="donut-ttl">Technology Type</div>
+                    <div id="techTypeChart"></div>
+                </div>
+                <div class="donut-card">
+                    <div class="donut-ttl">HQ AIDT Validation Rate</div>
+                    <div id="validationChart"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- VALUE CREATION section header -->
+    <div class="vc-header">
+        <div class="section-lbl">Value Creation</div>
+        <div class="legend-row">
+            <div class="leg"><div class="dot" style="background:#4d9de0"></div>Forecast</div>
+            <div class="leg"><div class="dot" style="background:#00c7a3"></div>Actual</div>
+            <div class="leg"><div class="dash" style="background:#f5a623"></div>Target</div>
+            <div class="leg"><div class="dash" style="background:#52c41a"></div>Exceed</div>
+            <div class="leg"><div class="dash" style="background:#ff4081"></div>Sig. Exceed</div>
+        </div>
+    </div>
+
+    <!-- MIDDLE CHARTS -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <div class="chart-ttl">Annual Value Creation Progress</div>
+            <div class="chart-sub">in billion US Dollars</div>
+            <div id="annualChart"></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-ttl">Value Creation by Technology Type</div>
+            <div class="chart-sub">&nbsp;</div>
+            <div id="techValueChart"></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-ttl">Investment by Technology Type</div>
+            <div class="chart-sub">&nbsp;</div>
+            <div id="investTypeChart"></div>
+        </div>
+    </div>
+
+    <!-- BOTTOM CHART -->
+    <div class="bottom-card">
+        <div class="chart-ttl">Value Creation by Directorate</div>
+        <div class="chart-sub">Right click to Drilldown to Details</div>
+        <div id="dirChart"></div>
+    </div>
+
+</div>
+
+<script>
+// ── Shared theme tokens ───────────────────────────────────────────────────────
+const C = {
+    blue:    '#1890ff',
+    teal:    '#00c7a3',
+    orange:  '#f5a623',
+    green:   '#52c41a',
+    pink:    '#ff4081',
+    purple:  '#9b59b6',
+    text:    '#7aabcc',
+    grid:    '#1b3a64',
+    bg:      'transparent',
+};
+
+// ── 1. Gauge — Value Creation ─────────────────────────────────────────────────
+const gauge = echarts.init(document.getElementById('gaugeChart'));
+gauge.setOption({
+    backgroundColor: C.bg,
+    series: [{
+        type: 'gauge',
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 50,
+        radius: '100%',
+        center: ['50%', '82%'],
+        axisLine: {
+            lineStyle: {
+                width: 14,
+                color: [
+                    [29.8 / 50, C.blue],
+                    [1, '#182d4e']
+                ]
+            }
+        },
+        pointer: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { show: false },
+        detail: {
+            valueAnimation: true,
+            formatter: '${value}bn',
+            color: '#fff',
+            fontSize: 20,
+            fontWeight: 'bold',
+            offsetCenter: [0, '-28%']
+        },
+        data: [{ value: 29.8 }]
+    }]
+});
+
+// ── 2. Donut — Technology Type ────────────────────────────────────────────────
+const techType = echarts.init(document.getElementById('techTypeChart'));
+techType.setOption({
+    backgroundColor: C.bg,
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    series: [{
+        type: 'pie',
+        radius: ['42%', '65%'],
+        center: ['50%', '52%'],
+        label: {
+            show: true,
+            fontSize: 9,
+            color: C.text,
+            formatter: '{b}\n{c}',
+        },
+        labelLine: { length: 5, length2: 4, lineStyle: { color: C.text } },
+        data: [
+            { value: 239, name: 'Core Techno...', itemStyle: { color: C.blue } },
+            { value: 127, name: 'Autom...',        itemStyle: { color: C.orange } },
+            { value: 46,  name: 'AI Solutions',    itemStyle: { color: C.green } },
+            { value: 72,  name: 'Digital Backbone',itemStyle: { color: C.teal } },
+        ]
+    }],
+    graphic: [
+        {
+            type: 'text',
+            left: 'center',
+            top: '38%',
+            style: { text: '484', fill: '#fff', font: 'bold 16px Segoe UI, sans-serif', textAlign: 'center' }
+        },
+        {
+            type: 'text',
+            left: 'center',
+            top: '52%',
+            style: { text: '# Initiatives', fill: C.text, font: '9px Segoe UI, sans-serif', textAlign: 'center' }
+        }
+    ]
+});
+
+// ── 3. Donut — HQ AIDT Validation Rate ───────────────────────────────────────
+const validation = echarts.init(document.getElementById('validationChart'));
+validation.setOption({
+    backgroundColor: C.bg,
+    tooltip: { trigger: 'item', formatter: '{b}: {d}%' },
+    series: [{
+        type: 'pie',
+        radius: ['42%', '65%'],
+        center: ['50%', '52%'],
+        label: {
+            show: true,
+            fontSize: 9,
+            color: C.text,
+            formatter: '{b}\n{d}%',
+        },
+        labelLine: { length: 5, length2: 4, lineStyle: { color: C.text } },
+        data: [
+            { value: 23, name: 'Validated', itemStyle: { color: C.blue } },
+            { value: 77, name: 'Pending',   itemStyle: { color: '#3a4a6a' } },
+        ]
+    }],
+    graphic: [
+        {
+            type: 'text',
+            left: 'center',
+            top: '38%',
+            style: { text: '% Rejection', fill: C.text, font: '9px Segoe UI, sans-serif', textAlign: 'center' }
+        },
+        {
+            type: 'text',
+            left: 'center',
+            top: '52%',
+            style: { text: '0.0%', fill: '#fff', font: 'bold 13px Segoe UI, sans-serif', textAlign: 'center' }
+        }
+    ]
+});
+
+// ── 4. Area — Annual Value Creation Progress ──────────────────────────────────
+const annual = echarts.init(document.getElementById('annualChart'));
+annual.setOption({
+    backgroundColor: C.bg,
+    grid: { top: 34, right: 14, bottom: 28, left: 10, containLabel: true },
+    xAxis: {
+        type: 'category',
+        data: ['2023', '2024', '2025', '2026'],
+        boundaryGap: false,
+        axisLine:  { lineStyle: { color: C.grid } },
+        axisTick:  { show: false },
+        axisLabel: { color: C.text, fontSize: 11 },
+        splitLine: { show: false },
+    },
+    yAxis: {
+        type: 'value',
+        min: 0,
+        axisLine:  { show: false },
+        axisTick:  { show: false },
+        axisLabel: { show: false },
+        splitLine: { lineStyle: { color: C.grid, type: 'dashed' } },
+    },
+    series: [{
+        type: 'line',
+        data: [16.2, 29.8, 30.1, 26.3],
+        smooth: false,
+        symbol: 'circle',
+        symbolSize: 7,
+        lineStyle: { color: C.blue, width: 2.5 },
+        itemStyle: { color: C.blue, borderColor: '#fff', borderWidth: 1.5 },
+        areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(24,144,255,0.55)' },
+                { offset: 1, color: 'rgba(24,144,255,0.04)' }
+            ])
+        },
+        label: {
+            show: true,
+            position: 'top',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 'bold',
+        }
+    }]
+});
+
+// ── 5. Bar — Value Creation by Technology Type ────────────────────────────────
+const techValue = echarts.init(document.getElementById('techValueChart'));
+techValue.setOption({
+    backgroundColor: C.bg,
+    grid: { top: 40, right: 10, bottom: 48, left: 10 },
+    xAxis: {
+        type: 'category',
+        data: ['Core\nTechnology', 'Automation\nand Data', 'Digital\nBackbone', 'AI\nSolutions'],
+        axisLine: { lineStyle: { color: C.grid } },
+        axisTick: { show: false },
+        axisLabel: { color: C.text, fontSize: 9.5, interval: 0, lineHeight: 14 },
+        splitLine: { show: false },
+    },
+    yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { show: false },
+        splitLine: { lineStyle: { color: C.grid, type: 'dashed' } },
+    },
+    series: [{
+        type: 'bar',
+        data: [22321.0, 5392.9, 1296.6, 684.4],
+        itemStyle: {
+            color: C.blue,
+            borderRadius: [3, 3, 0, 0]
+        },
+        barMaxWidth: 56,
+        label: {
+            show: true,
+            position: 'top',
+            color: '#fff',
+            fontSize: 9.5,
+            fontWeight: 600,
+            formatter: (p) => ['22,321.0M', '5,392.9M', '1,296.6M', '684.4M'][p.dataIndex]
+        }
+    }]
+});
+
+// ── 6. Bar — Investment by Technology Type ────────────────────────────────────
+const investType = echarts.init(document.getElementById('investTypeChart'));
+investType.setOption({
+    backgroundColor: C.bg,
+    grid: { top: 40, right: 10, bottom: 48, left: 10 },
+    xAxis: {
+        type: 'category',
+        data: ['Core\nTechnology', 'Automation\nand Data', 'Digital\nBackbone', 'AI\nSolutions'],
+        axisLine: { lineStyle: { color: C.grid } },
+        axisTick: { show: false },
+        axisLabel: { color: C.text, fontSize: 9.5, interval: 0, lineHeight: 14 },
+        splitLine: { show: false },
+    },
+    yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { show: false },
+        splitLine: { lineStyle: { color: C.grid, type: 'dashed' } },
+    },
+    series: [{
+        type: 'bar',
+        data: [1517.5, 86.3, 39.2, 313.9],
+        itemStyle: {
+            color: C.blue,
+            borderRadius: [3, 3, 0, 0]
+        },
+        barMaxWidth: 56,
+        label: {
+            show: true,
+            position: 'top',
+            color: '#fff',
+            fontSize: 9.5,
+            fontWeight: 600,
+            formatter: (p) => ['1,517.5M', '86.3M', '39.2M', '313.9M'][p.dataIndex]
+        }
+    }]
+});
+
+// ── 7. Bar — Value Creation by Directorate ────────────────────────────────────
+const dirChart = echarts.init(document.getElementById('dirChart'));
+dirChart.setOption({
+    backgroundColor: C.bg,
+    grid: { top: 30, right: 30, bottom: 36, left: 20 },
+    xAxis: {
+        type: 'category',
+        data: ['Upstream', 'DMT', 'Corporate\nFunctions'],
+        axisLine: { lineStyle: { color: C.grid } },
+        axisTick: { show: false },
+        axisLabel: { color: C.text, fontSize: 11, interval: 0, lineHeight: 16 },
+        splitLine: { show: false },
+    },
+    yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { show: false },
+        splitLine: { lineStyle: { color: C.grid, type: 'dashed' } },
+    },
+    series: [{
+        type: 'bar',
+        data: [20935.8, 2621.5, 480.0],
+        itemStyle: {
+            color: C.blue,
+            borderRadius: [3, 3, 0, 0]
+        },
+        barMaxWidth: 100,
+        label: {
+            show: true,
+            position: 'top',
+            color: '#fff',
+            fontSize: 11,
+            fontWeight: 600,
+            formatter: (p) => ['20,935.8M', '2,621.5M', '480.0M'][p.dataIndex]
+        }
+    }]
+});
+
+// ── Responsive resize ─────────────────────────────────────────────────────────
+const allCharts = [gauge, techType, validation, annual, techValue, investType, dirChart];
+window.addEventListener('resize', () => allCharts.forEach(c => c.resize()));
+</script>
+</body>
+</html>
