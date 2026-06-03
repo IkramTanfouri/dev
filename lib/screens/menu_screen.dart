@@ -1,291 +1,271 @@
 // lib/screens/menu_screen.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/colors.dart';
 import '../core/models/plat.dart';
 import '../core/services/firebase_plat_service.dart';
-import 'cart_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
-
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  final _service = FirebasePlatService();
-  String _selectedCategory = 'Tous';
-
-  static const List<Map<String, String>> _categories = [
-    {'label': 'Tous', 'icon': '☕'},
-    {'label': 'Boisson chaude', 'icon': '🍵'},
-    {'label': 'Boisson froide', 'icon': '🧋'},
-    {'label': 'Patisserie', 'icon': '🥐'},
-    {'label': 'Snack', 'icon': '🥪'},
+  final List<_Category> _categories = const [
+    _Category(label: 'Hot Drinks',  icon: 'assets/icons/hdrinks.png',  fallback: Icons.coffee,              key: 'Boisson chaude'),
+    _Category(label: 'Cold Drinks', icon: 'assets/icons/cdrinks.png',  fallback: Icons.local_cafe_outlined, key: 'Boisson froide'),
+    _Category(label: 'Sweet',       icon: 'assets/icons/sweet.png',    fallback: Icons.cake_outlined,       key: 'Patisserie'),
+    _Category(label: 'Savory',      icon: 'assets/icons/savory.png',   fallback: Icons.restaurant_outlined, key: 'Snack'),
   ];
+
+  int    _catIndex    = 0;
+  String _searchQuery = '';
+  final  _searchCtrl  = TextEditingController();
+  final  _platService = FirebasePlatService();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() =>
+        setState(() => _searchQuery = _searchCtrl.text.toLowerCase().trim()));
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Plat> _filterPlats(List<Plat> all) {
+    var list = all;
+    if (_catIndex != -1) {
+      final key = _categories[_catIndex].key;
+      list = list.where((p) => p.categorie == key).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      list = list.where((p) {
+        final name = p.nom.toLowerCase();
+        final cat  = p.categorie.toLowerCase();
+        return name.contains(_searchQuery) || cat.contains(_searchQuery);
+      }).toList();
+    }
+    return list;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    final topPad = MediaQuery.of(context).padding.top;
+
+    return Column(children: [
+
+      // ── Header ──────────────────────────────────────────────────────────
+      Container(
+        color: kBrown,
+        padding: EdgeInsets.only(top: topPad + 12, bottom: 12),
+        child: Column(children: [
+
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-            child: const Text(
-              'Notre Menu',
-              style: TextStyle(
-                fontFamily: 'LeagueSpartan',
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: kBrown,
-              ),
-            ),
-          ),
-          // Category chips
-          SizedBox(
-            height: 44,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _categories.length,
-              itemBuilder: (_, i) {
-                final cat = _categories[i];
-                final selected = _selectedCategory == cat['label'];
-                return GestureDetector(
-                  onTap: () =>
-                      setState(() => _selectedCategory = cat['label']!),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? kBrown : kInputBg,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: Text(
-                      '${cat['icon']}  ${cat['label']}',
-                      style: TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: selected ? kWhite : kBrown,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(children: [
+              Expanded(
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22)),
+                  child: Row(children: [
+                    const SizedBox(width: 14),
+                    Icon(Icons.search, color: kBrown.withOpacity(0.35), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchCtrl,
+                        style: const TextStyle(fontFamily: 'LeagueSpartan',
+                            color: kBrown, fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle: TextStyle(fontFamily: 'LeagueSpartan',
+                              color: kBrown.withOpacity(0.35), fontSize: 15),
+                          border: InputBorder.none, isDense: true,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                    if (_searchQuery.isNotEmpty)
+                      GestureDetector(
+                        onTap: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); },
+                        child: Padding(padding: const EdgeInsets.only(right: 12),
+                            child: Icon(Icons.close, color: kBrown.withOpacity(0.4), size: 18)),
+                      ),
+                  ]),
+                ),
+              ),
+            ]),
           ),
           const SizedBox(height: 12),
-          // Product grid
-          Expanded(
-            child: StreamBuilder<List<Plat>>(
-              stream: _service.watchAll(),
-              builder: (ctx, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator(
-                          color: kBrown, strokeWidth: 2));
-                }
-                if (snap.hasError) {
-                  return Center(
-                      child: Text('Erreur : ${snap.error}',
-                          style: const TextStyle(
-                              fontFamily: 'LeagueSpartan', color: kBrown)));
-                }
-                final all = snap.data ?? [];
-                final filtered = _selectedCategory == 'Tous'
-                    ? all
-                    : all
-                        .where((p) => p.categorie == _selectedCategory)
-                        .toList();
 
-                if (filtered.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Aucun produit dans cette catégorie',
-                      style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 15,
-                          color: kGrey),
-                    ),
-                  );
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 4),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.75,
-                  ),
-                  itemCount: filtered.length,
-                  itemBuilder: (_, i) => _PlatCard(
-                    plat: filtered[i],
-                    onAddToCart: () {
-                      CartState.add(filtered[i]);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${filtered[i].nom} ajouté au panier',
-                            style: const TextStyle(
-                                fontFamily: 'LeagueSpartan'),
-                          ),
-                          backgroundColor: kBrown,
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
+          SizedBox(
+            height: 106,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(_categories.length, (i) {
+                final isActive = _catIndex == i;
+                final cat = _categories[i];
+                return GestureDetector(
+                  onTap: () => setState(() => _catIndex = _catIndex == i ? -1 : i),
+                  child: isActive ? _ActiveTab(cat: cat) : _InactiveTab(cat: cat),
                 );
-              },
+              }),
             ),
           ),
-        ],
+        ]),
       ),
+
+      // ── Product list ─────────────────────────────────────────────────────
+      Expanded(
+        child: ColoredBox(
+          color: const Color(0xFFF5F5F5),
+          child: StreamBuilder<List<Plat>>(
+            stream: _platService.watchAll(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: kBrown));
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Erreur: ${snapshot.error}',
+                    style: const TextStyle(fontFamily: 'LeagueSpartan', color: Colors.red)));
+              }
+              final filtered = _filterPlats(snapshot.data ?? []);
+              return _buildList(filtered);
+            },
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  Widget _buildList(List<Plat> plats) {
+    if (plats.isEmpty) {
+      return Center(child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 64, color: kBrown.withOpacity(0.15)),
+          const SizedBox(height: 12),
+          Text(
+            _searchQuery.isNotEmpty
+                ? 'Aucun résultat pour "$_searchQuery"'
+                : 'Aucun produit dans cette catégorie',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontFamily: 'LeagueSpartan',
+                color: kBrown.withOpacity(0.4), fontSize: 15)),
+        ],
+      ));
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+      itemCount: plats.length,
+      itemBuilder: (_, i) => _PlatItem(plat: plats[i]),
     );
   }
 }
 
-class _PlatCard extends StatelessWidget {
+// ── Product item ─────────────────────────────────────────────────────────────
+class _PlatItem extends StatelessWidget {
   final Plat plat;
-  final VoidCallback onAddToCart;
-  const _PlatCard({required this.plat, required this.onAddToCart});
-
-  Widget _image() {
-    final src = plat.image;
-    if (src.startsWith('http')) {
-      return Image.network(
-        src,
-        fit: BoxFit.cover,
-        key: ValueKey(src),
-        errorBuilder: (_, __, ___) =>
-            const Center(child: Icon(Icons.coffee, color: kBrown, size: 40)),
-      );
-    }
-    return Image.asset(
-      src,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) =>
-          const Center(child: Icon(Icons.coffee, color: kBrown, size: 40)),
-    );
-  }
+  const _PlatItem({required this.plat});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: kBrown.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image area
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16)),
-                  child: _image(),
-                ),
-                if (plat.isBestSeller)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: kBrown,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Best Seller',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: kWhite,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Info area
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  plat.nom,
-                  style: const TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: kBrown,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  plat.categorie,
-                  style: TextStyle(
-                    fontFamily: 'LeagueSpartan',
-                    fontSize: 11,
-                    color: kBrown.withOpacity(0.55),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${plat.prix.toStringAsFixed(0)} DA',
-                      style: const TextStyle(
-                        fontFamily: 'LeagueSpartan',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: kBrown,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: onAddToCart,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: kBrown,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.add,
-                            color: kWhite, size: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(36),
+          child: _buildImage(),
+        ),
+        const SizedBox(height: 12),
+        Text(plat.nom,
+            style: const TextStyle(fontFamily: 'LeagueSpartan', color: kBrown,
+                fontSize: 18, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Expanded(child: Text(plat.categorie,
+              style: TextStyle(fontFamily: 'LeagueSpartan',
+                  color: kBrown.withOpacity(0.5), fontSize: 13))),
+          const SizedBox(width: 8),
+          Text('${plat.prix.toStringAsFixed(0)} DA',
+              style: const TextStyle(fontFamily: 'LeagueSpartan', color: kBrown,
+                  fontSize: 16, fontWeight: FontWeight.w600)),
+        ]),
+      ]),
     );
   }
+
+  Widget _buildImage() {
+    if (plat.image.startsWith('http://') || plat.image.startsWith('https://')) {
+      return CachedNetworkImage(
+        imageUrl: plat.image, width: double.infinity, height: 199,
+        fit: BoxFit.contain,
+        placeholder: (_, __) => const SizedBox(height: 199,
+            child: Center(child: CircularProgressIndicator(color: kBrown, strokeWidth: 2))),
+        errorWidget: (_, __, ___) => SizedBox(height: 199,
+            child: Center(child: Icon(Icons.coffee, color: Color(0xFF6B3A2A), size: 80))),
+      );
+    }
+    return Image.asset(plat.image, width: double.infinity, height: 199,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => SizedBox(height: 199,
+            child: Center(child: Icon(Icons.coffee, color: Color(0xFF6B3A2A), size: 80))));
+  }
+}
+
+// ── Active tab ────────────────────────────────────────────────────────────────
+class _ActiveTab extends StatelessWidget {
+  final _Category cat;
+  const _ActiveTab({required this.cat});
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 90, height: 106,
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      Image.asset(cat.icon, width: 36, height: 36, color: const Color(0xFF31190A),
+          errorBuilder: (ctx, e, s) => Icon(cat.fallback, color: const Color(0xFF31190A), size: 32)),
+      const SizedBox(height: 6),
+      Text(cat.label, textAlign: TextAlign.center,
+          style: const TextStyle(fontFamily: 'LeagueSpartan', color: Color(0xFF31190A),
+              fontSize: 11, fontWeight: FontWeight.w600)),
+    ]),
+  );
+}
+
+// ── Inactive tab ──────────────────────────────────────────────────────────────
+class _InactiveTab extends StatelessWidget {
+  final _Category cat;
+  const _InactiveTab({required this.cat});
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Container(
+        width: 49, height: 62,
+        decoration: BoxDecoration(color: const Color(0xFF988377),
+            borderRadius: BorderRadius.circular(30)),
+        child: Center(child: Image.asset(cat.icon, width: 28, height: 28,
+            color: const Color(0xFF31190A),
+            errorBuilder: (ctx, e, s) =>
+                Icon(cat.fallback, color: const Color(0xFF31190A), size: 26))),
+      ),
+      const SizedBox(height: 6),
+      Text(cat.label, style: TextStyle(fontFamily: 'LeagueSpartan',
+          color: Colors.white.withOpacity(0.65), fontSize: 11)),
+    ],
+  );
+}
+
+class _Category {
+  final String label, icon, key;
+  final IconData fallback;
+  const _Category({required this.label, required this.icon,
+      required this.fallback, required this.key});
 }
