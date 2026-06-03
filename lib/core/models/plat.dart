@@ -1,84 +1,83 @@
 // lib/core/models/plat.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Plat {
   final String id;
-  final String nom;
-  final String categorie;
-  final double prix;
-  final String image;
-  final bool isBestSeller;
+  String name;
+  double price;
+  String category;
+  String image;
+  String description;
+  bool isBestSeller;
 
   Plat({
     required this.id,
-    required this.nom,
-    required this.categorie,
-    required this.prix,
+    required this.name,
+    required this.price,
+    required this.category,
     required this.image,
+    this.description  = '',
     this.isBestSeller = false,
   });
 
-  factory Plat.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return Plat(
-      id: doc.id,
-      nom: data['nom'] ?? '',
-      categorie: data['categorie'] ?? '',
-      prix: (data['prix'] as num?)?.toDouble() ?? 0.0,
-      image: data['image'] ?? '',
-      isBestSeller: data['isBestSeller'] ?? false,
-    );
+  // "11,500dt"
+  String get formattedPrice =>
+      '${price.toStringAsFixed(3).replaceAll('.', ',')}dt';
+
+  String get categoryLabel {
+    switch (category) {
+      case 'hot_drinks':  return 'Hot Drinks';
+      case 'cold_drinks': return 'Cold Drinks';
+      case 'sweet':       return 'Sweet';
+      case 'savory':      return 'Savory';
+      default:            return category;
+    }
   }
 
-  Map<String, dynamic> toMap() => {
-        'nom': nom,
-        'categorie': categorie,
-        'prix': prix,
-        'image': image,
-        'isBestSeller': isBestSeller,
-      };
+  String get subtitle {
+    if (description.isNotEmpty) return description;
+    switch (category) {
+      case 'hot_drinks':  return 'Café, lait et noisette';
+      case 'cold_drinks': return 'Café au lait glacé';
+      case 'sweet':       return 'Pâtisserie maison';
+      case 'savory':      return 'Plat savoureux';
+      default:            return '';
+    }
+  }
 
-  Plat copyWith({
-    String? id,
-    String? nom,
-    String? categorie,
-    double? prix,
-    String? image,
-    bool? isBestSeller,
-  }) {
-    return Plat(
-      id: id ?? this.id,
-      nom: nom ?? this.nom,
-      categorie: categorie ?? this.categorie,
-      prix: prix ?? this.prix,
-      image: image ?? this.image,
-      isBestSeller: isBestSeller ?? this.isBestSeller,
-    );
+  static String defaultImageFor(String category) {
+    switch (category) {
+      case 'hot_drinks':  return 'assets/images/macchiato.png';
+      case 'cold_drinks': return 'assets/images/iced_macchiato.png';
+      case 'sweet':       return 'assets/images/cachuete.png';
+      case 'savory':      return 'assets/images/salade_cesar.png';
+      default:            return 'assets/images/macchiato.png';
+    }
   }
 
   static const List<String> availableImages = [
-    'assets/images/espresso.png',
-    'assets/images/cappuccino.png',
-    'assets/images/latte.png',
-    'assets/images/americano.png',
-    'assets/images/mocha.png',
-    'assets/images/croissant.png',
-    'assets/images/muffin.png',
-    'assets/images/sandwich.png',
+    'assets/images/macchiato.png',
+    'assets/images/frappuccino.png',
+    'assets/images/iced_macchiato.png',
+    'assets/images/cachuete.png',
+    'assets/images/salade_cesar.png',
   ];
 
-  static String defaultImageFor(String categorie) {
-    switch (categorie.toLowerCase()) {
-      case 'boisson chaude':
-        return 'assets/images/espresso.png';
-      case 'boisson froide':
-        return 'assets/images/latte.png';
-      case 'patisserie':
-        return 'assets/images/croissant.png';
-      case 'snack':
-        return 'assets/images/sandwich.png';
-      default:
-        return 'assets/images/espresso.png';
-    }
+  Plat copyWith({
+    String? name,
+    double? price,
+    String? category,
+    String? image,
+    String? description,
+    bool?   isBestSeller,
+  }) {
+    return Plat(
+      id:           id,
+      name:         name         ?? this.name,
+      price:        price        ?? this.price,
+      category:     category     ?? this.category,
+      image:        image        ?? this.image,
+      description:  description  ?? this.description,
+      isBestSeller: isBestSeller ?? this.isBestSeller,
+    );
   }
 }

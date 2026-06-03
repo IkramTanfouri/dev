@@ -29,7 +29,7 @@ class CartState {
   }
 
   static double get total =>
-      items.fold(0, (sum, i) => sum + i.plat.prix * i.qty);
+      items.fold(0, (sum, i) => sum + i.plat.price * i.qty);
 }
 
 class CartScreen extends StatefulWidget {
@@ -58,8 +58,8 @@ class _CartScreenState extends State<CartScreen> {
         final subRef = ref.collection(kSubColQuantites).doc();
         batch.set(subRef, {
           'produitId': item.plat.id,
-          'nom': item.plat.nom,
-          'prix': item.plat.prix,
+          'nom': item.plat.name,
+          'prix': item.plat.price,
           'quantite': item.qty,
         });
       }
@@ -225,13 +225,13 @@ class _CartTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.plat.nom,
+                Text(item.plat.name,
                     style: const TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: kBrown)),
-                Text('${item.plat.prix.toStringAsFixed(0)} DA',
+                Text(item.plat.formattedPrice,
                     style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 13,

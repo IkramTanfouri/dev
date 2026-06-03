@@ -12,93 +12,65 @@ class ManagerDashboardScreen extends StatefulWidget {
 }
 
 class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
-  Map<String, dynamic>? _analytics;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final data = await platService.getAnalytics();
-    if (!mounted) return;
-    setState(() {
-      _analytics = data;
-      _loading = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: kBrown, strokeWidth: 2))
-          : RefreshIndicator(
-              color: kBrown,
-              onRefresh: () async {
-                setState(() => _loading = true);
-                await _load();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Dashboard',
-                        style: TextStyle(
-                            fontFamily: 'LeagueSpartan',
-                            fontSize: 26,
-                            fontWeight: FontWeight.w700,
-                            color: kBrown)),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        _StatCard(
-                            label: 'Commandes',
-                            value:
-                                '${_analytics!['totalCommandes']}',
-                            icon: Icons.receipt_outlined),
-                        const SizedBox(width: 12),
-                        _StatCard(
-                            label: 'En attente',
-                            value: '${_analytics!['pending']}',
-                            icon: Icons.hourglass_empty),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _StatCard(
-                            label: 'Livrées',
-                            value: '${_analytics!['completed']}',
-                            icon: Icons.check_circle_outline),
-                        const SizedBox(width: 12),
-                        _StatCard(
-                            label: 'Note moy.',
-                            value:
-                                '${(_analytics!['avgNote'] as double).toStringAsFixed(1)} ★',
-                            icon: Icons.star_outline),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                    const Text('Commandes par heure (aujourd\'hui)',
-                        style: TextStyle(
-                            fontFamily: 'LeagueSpartan',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: kBrown)),
-                    const SizedBox(height: 16),
-                    _BarChart(
-                        data: Map<int, int>.from(
-                            _analytics!['ordersPerHour'])),
-                  ],
-                ),
+      child: RefreshIndicator(
+        color: kBrown,
+        onRefresh: () async => setState(() {}),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Dashboard',
+                  style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: kBrown)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _StatCard(
+                      label: 'Plats',
+                      value: '${platService.totalPlats}',
+                      icon: Icons.restaurant_menu_outlined),
+                  const SizedBox(width: 12),
+                  _StatCard(
+                      label: 'Commandes',
+                      value: '${platService.totalFakeOrders}',
+                      icon: Icons.receipt_outlined),
+                ],
               ),
-            ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _StatCard(
+                      label: 'Ventes',
+                      value: '${platService.totalFakeSales.toStringAsFixed(1)} DA',
+                      icon: Icons.payments_outlined),
+                  const SizedBox(width: 12),
+                  _StatCard(
+                      label: 'Top plat',
+                      value: platService.mostOrderedPlat,
+                      icon: Icons.star_outline),
+                ],
+              ),
+              const SizedBox(height: 28),
+              const Text('Commandes par heure',
+                  style: TextStyle(
+                      fontFamily: 'LeagueSpartan',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: kBrown)),
+              const SizedBox(height: 16),
+              _BarChart(data: platService.getOrdersPerHour()),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

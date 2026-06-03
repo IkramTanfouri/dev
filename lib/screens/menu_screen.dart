@@ -13,10 +13,10 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   final List<_Category> _categories = const [
-    _Category(label: 'Hot Drinks',  icon: 'assets/icons/hdrinks.png',  fallback: Icons.coffee,              key: 'Boisson chaude'),
-    _Category(label: 'Cold Drinks', icon: 'assets/icons/cdrinks.png',  fallback: Icons.local_cafe_outlined, key: 'Boisson froide'),
-    _Category(label: 'Sweet',       icon: 'assets/icons/sweet.png',    fallback: Icons.cake_outlined,       key: 'Patisserie'),
-    _Category(label: 'Savory',      icon: 'assets/icons/savory.png',   fallback: Icons.restaurant_outlined, key: 'Snack'),
+    _Category(label: 'Hot Drinks',  icon: 'assets/icons/hdrinks.png',  fallback: Icons.coffee,              key: 'hot_drinks'),
+    _Category(label: 'Cold Drinks', icon: 'assets/icons/cdrinks.png',  fallback: Icons.local_cafe_outlined, key: 'cold_drinks'),
+    _Category(label: 'Sweet',       icon: 'assets/icons/sweet.png',    fallback: Icons.cake_outlined,       key: 'sweet'),
+    _Category(label: 'Savory',      icon: 'assets/icons/savory.png',   fallback: Icons.restaurant_outlined, key: 'savory'),
   ];
 
   int    _catIndex    = 0;
@@ -41,12 +41,12 @@ class _MenuScreenState extends State<MenuScreen> {
     var list = all;
     if (_catIndex != -1) {
       final key = _categories[_catIndex].key;
-      list = list.where((p) => p.categorie == key).toList();
+      list = list.where((p) => p.category == key).toList();
     }
     if (_searchQuery.isNotEmpty) {
       list = list.where((p) {
-        final name = p.nom.toLowerCase();
-        final cat  = p.categorie.toLowerCase();
+        final name = p.name.toLowerCase();
+        final cat  = p.category.toLowerCase();
         return name.contains(_searchQuery) || cat.contains(_searchQuery);
       }).toList();
     }
@@ -185,16 +185,16 @@ class _PlatItem extends StatelessWidget {
           child: _buildImage(),
         ),
         const SizedBox(height: 12),
-        Text(plat.nom,
+        Text(plat.name,
             style: const TextStyle(fontFamily: 'LeagueSpartan', color: kBrown,
                 fontSize: 18, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          Expanded(child: Text(plat.categorie,
+          Expanded(child: Text(plat.subtitle,
               style: TextStyle(fontFamily: 'LeagueSpartan',
                   color: kBrown.withOpacity(0.5), fontSize: 13))),
           const SizedBox(width: 8),
-          Text('${plat.prix.toStringAsFixed(0)} DA',
+          Text(plat.formattedPrice,
               style: const TextStyle(fontFamily: 'LeagueSpartan', color: kBrown,
                   fontSize: 16, fontWeight: FontWeight.w600)),
         ]),

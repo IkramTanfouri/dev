@@ -2,12 +2,46 @@
 import '../models/plat.dart';
 
 abstract class IPlatService {
+  // Stream
   Stream<List<Plat>> watchAll();
-  Future<List<Plat>> getAll();
-  Future<void> add(Plat plat);
-  Future<void> update(Plat plat);
-  Future<void> delete(String id);
-  Future<Map<String, dynamic>> getAnalytics();
-  Future<Map<String, dynamic>?> getUserProfile(String uid);
-  Future<void> updateUserProfile(String uid, Map<String, dynamic> data);
+
+  // CRUD
+  List<Plat> getAll();
+  Plat? getById(String id);
+  Plat add({
+    required String name,
+    required double price,
+    required String category,
+    required String image,
+    String description,
+    bool isBestSeller,
+  });
+  Plat update({
+    required String id,
+    required String name,
+    required double price,
+    required String category,
+    required String image,
+    String description,
+    bool isBestSeller,
+  });
+  void delete(String id);
+
+  // Stats
+  int    get totalPlats;
+  int    get totalFakeOrders;
+  double get totalFakeSales;
+  String get mostOrderedPlat;
+  Map<int, int> getOrdersPerHour();
+  int getMostActiveHour();
+
+  // Manager profile
+  String get managerName;
+  String get managerEmail;
+  String get managerAvatarAsset;
+  void updateManagerProfile({
+    required String name,
+    required String email,
+    required String avatarAsset,
+  });
 }

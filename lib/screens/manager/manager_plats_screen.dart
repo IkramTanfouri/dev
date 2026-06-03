@@ -93,7 +93,7 @@ class ManagerPlatsScreen extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: const Text('Supprimer',
             style: TextStyle(fontFamily: 'LeagueSpartan', color: kBrown)),
-        content: Text('Supprimer "${plat.nom}" ?',
+        content: Text('Supprimer "${plat.name}" ?',
             style: const TextStyle(fontFamily: 'LeagueSpartan')),
         actions: [
           TextButton(
@@ -103,9 +103,9 @@ class ManagerPlatsScreen extends StatelessWidget {
                     fontFamily: 'LeagueSpartan', color: kBrown)),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              await platService.delete(plat.id);
+              platService.delete(plat.id);
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -160,13 +160,13 @@ class _PlatTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(plat.nom,
+                Text(plat.name,
                     style: const TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: kBrown)),
-                Text('${plat.categorie} • ${plat.prix.toStringAsFixed(0)} DA',
+                Text('${plat.categoryLabel} • ${plat.formattedPrice}',
                     style: TextStyle(
                         fontFamily: 'LeagueSpartan',
                         fontSize: 12,
